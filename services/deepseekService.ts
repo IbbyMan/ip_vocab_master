@@ -1,13 +1,7 @@
 
 import { IPType, WordAssociation } from "../types";
 
-/**
- * 使用DeepSeek API生成单词联想内容
- * @param word 要记忆的单词
- * @param ipLabel IP的显示名称
- * @param ipType IP类型（用于内部跟踪）
- */
-export const generateWordAssociation = async (word: string, ipLabel: string, ipType: IPType): Promise&lt;WordAssociation&gt; =&gt; {
+export const generateWordAssociation = async (word, ipLabel, ipType) =&gt; {
   const apiKey = import.meta.env.VITE_DEEPSEEK_API_KEY;
   
   if (!apiKey) {
