@@ -1,7 +1,15 @@
 
 import { IPType, WordAssociation } from "../types";
 
-export const generateWordAssociation = async (word, ipLabel, ipType) =&gt; {
+/**
+ * 调用 DeepSeek 接口生成助记内容
+ * 小白理解版：把单词 + 你选的 IP 发给 AI，让它按固定 JSON 格式返回结果。
+ */
+export const generateWordAssociation = async (
+  word: string,
+  ipLabel: string,
+  ipType: IPType
+): Promise<WordAssociation> => {
   const apiKey = import.meta.env.VITE_DEEPSEEK_API_KEY;
   
   if (!apiKey) {
