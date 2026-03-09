@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { IPType, WordAssociation, SavedWord } from './types';
 import { IP_CONFIGS, WORD_LIST } from './constants';
-import { generateWordAssociation } from './services/geminiService';
+import { generateWordAssociation } from './services/deepseekService';
 import WordCard from './components/WordCard';
 import VocabBook from './components/VocabBook';
 

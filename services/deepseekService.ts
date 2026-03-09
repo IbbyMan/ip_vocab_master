@@ -1,16 +1,19 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
 import { IPType, WordAssociation } from "../types";
 
 /**
- * Generates word association content using Gemini 3 Flash.
+ * Generates word association content using DeepSeek API.
  * @param word The vocabulary word
  * @param ipLabel The display label/name of the IP
  * @param ipType The enum type for internal tracking
  */
-export const generateWordAssociation = async (word: string, ipLabel: string, ipType: IPType): Promise<WordAssociation> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+export const generateWordAssociation = async (word: string, ipLabel: string, ipType: IPType): Promise&lt;WordAssociation&gt; =&gt; {
+  const apiKey = import.meta.env.DEEPSEEK_API_KEY;
   
+  if (!apiKey) {
+    throw new Error("DEEPSEEK_API_KEY is not set in environment variables");
+  }
+
   const systemInstruction = `
 # 角色
 你是认知心理学家、英语词源专家、【${ipLabel}】的资深玩家，专为背单词APP生成强记忆、有趣味的IP记忆法。
@@ -35,31 +38,54 @@ export const generateWordAssociation = async (word: string, ipLabel: string, ipT
 - 禁止任何形式的故事化叙述。
 - 只能使用【${ipLabel}】中的IP元素，禁止使用其他IP。
 
-Output format: JSON only.
+请直接返回JSON格式，使用以下字段名：
+- word: 单词
+- pronunciation: 音标
+- definition: 词义
+- association: 词源拆解（纯学术）
+- sound_anchor: 谐音锚点（完整发音→中文短语）
+- mnemonic: IP记忆脑洞（20字内）
+- funScore: 有趣程度评分（0-10）
   `;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: `请针对单词【${word}】和IP【${ipLabel}】生成助记内容。`,
-    config: {
-      systemInstruction,
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          word: { type: Type.STRING },
-          pronunciation: { type: Type.STRING },
-          definition: { type: Type.STRING },
-          association: { type: Type.STRING },
-          sound_anchor: { type: Type.STRING },
-          mnemonic: { type: Type.STRING },
-          funScore: { type: Type.NUMBER }
+  try {
+    const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [
+          {
+            role: "system",
+            content: systemInstruction
+          },
+          {
+            role: "user",
+            content: `请针对单词【${word}】和IP【${ipLabel}】生成助记内容。`
+          }
+        ],
+        response_format: {
+          type: "json_object"
         },
-        required: ["word", "pronunciation", "definition", "association", "sound_anchor", "mnemonic", "funScore"]
-      }
-    }
-  });
+        temperature: 0.7
+      })
+    });
 
-  const data = JSON.parse(response.text || "{}");
-  return { ...data, ip: ipType, customIPName: ipType === IPType.CUSTOM ? ipLabel : undefined };
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`DeepSeek API error: ${response.status} - ${errorText}`);
+    }
+
+    const result = await response.json();
+    const content = result.choices[0].message.content;
+    const data = JSON.parse(content || "{}");
+    
+    return { ...data, ip: ipType, customIPName: ipType === IPType.CUSTOM ? ipLabel : undefined };
+  } catch (error) {
+    console.error("Error calling DeepSeek API:", error);
+    throw error;
+  }
 };
